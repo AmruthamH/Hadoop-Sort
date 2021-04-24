@@ -16,78 +16,78 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 public class HadoopSort {
 
   private static final Logger logger = Logger.getLogger(HadoopSort.class);
-  //Total number of ascii characters in generated gensort
-  private static final int totalChars = 128;
+  
+  private static final int totChar = 128;
 
 
   //Mapper that maps first 10 characters to key and rest to value in a line
-  public static class TokenizerMapper
+  public static class Mapping
        extends Mapper<Object, Text, Text, Text>{
 
-    public void map(Object key, Text value, Context context
+    public void map(Object keyM, Text valueM, Context context
                     ) throws IOException, InterruptedException {
-      String line  = value.toString();
-      String keypart = line.substring(0,10);
-      String valuepart = line.substring(11,98);
-      valuepart += "\r";
-      context.write(new Text(keypart),new Text(valuepart));
+      String lineM  = valueM.toString();
+      String keymap = lineM.substring(0,10);
+      String valuemap = lineM.substring(11,98);
+      valuemap += "\r";
+      context.write(new Text(keymap),new Text(valuemap));
     }
   }
 
 
-  //Reducer that just writes to files and does nothing else.
-  public static class IntSumReducer
+  //writting to files
+  public static class SReducer
        extends Reducer<Text,Text,Text,Text> {
-    public void reduce(Text key, Iterable<Text> values,
+    public void reduce(Text keyS, Iterable<Text> valueS,
                        Context context
                        ) throws IOException, InterruptedException {
-      for (Text val : values) {
-        context.write(key,val);
+      for (Text valS : valueS) {
+        context.write(keyS,valS);
       }
     }
   }
 
-  //This is the custom Partitioner that can be used to get sorted output among the partitions
-  //This directs the output to reducers based on first character of the string.
-  public static class customPartitioner extends Partitioner<Text,Text>{
-                public int getPartition(Text key, Text value, int numReduceTasks){
-      int numCharsPerReducer = totalChars/numReduceTasks;
-      int firstChar = (int)key.toString().charAt(0);
-      int iter = 0;
-      while(iter < numReduceTasks){
-        int start = iter * numCharsPerReducer;
-        int end = (iter+1) * numCharsPerReducer;
-        if(firstChar >= start && firstChar < end){
-          return iter;
+  //cPartitioner that can be used to get sorted output among the partitions
+  //output to reducers based on first character of the string.
+  public static class cPartitioner extends Partitioner<Text,Text>{
+                public int getPartition(Text key, Text value, int numRTasks){
+      int numCPerReducer = totChar/numRTasks;
+      int startChar = (int)key.toString().charAt(0);
+      int ite = 0;
+      while(ite < numRTasks){
+        int start = ite * numCPerReducer;
+        int end = (ite+1) * numCPerReducer;
+        if(startChar >= start && startChar < end){
+          return ite;
         }
-        iter++;
+        ite++;
       }
-      return iter-1;
+      return ite-1;
     }
   }
 
   public static void main(String[] args) throws Exception {
     logger.info("Starting timer");
-    long start = System.currentTimeMillis();
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "hadoop sort");
-    job.setJarByClass(HadoopSort.class);
-    job.setMapperClass(TokenizerMapper.class);
-    job.setCombinerClass(IntSumReducer.class);
-    job.setPartitionerClass(customPartitioner.class);
-    //Set the number of reducers here
-    job.setReducerClass(IntSumReducer.class);
-    job.setNumReduceTasks(1);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    long started = System.currentTimeMillis();
+    Configuration config = new Configuration();
+    Job jobs = Job.getInstance(config, "hadoop sort");
+    jobs.setJarByClass(HadoopSort.class);
+    jobs.setMapperClass(Mapping.class);
+    jobs.setCombinerClass(SReducer.class);
+    jobs.setPartitionerClass(cPartitioner.class);
+    //Setting the number of reducers 
+    jobs.setReducerClass(SReducer.class);
+    jobs.setNumReduceTasks(1);
+    jobs.setOutputKeyClass(Text.class);
+    jobs.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(jobs, new Path(args[0]));
+    FileOutputFormat.setOutputPath(jobs, new Path(args[1]));
 
-    if(job.waitForCompletion(true) == true){
-      long finish = System.currentTimeMillis();
-            long timeElapsed = finish - start;
-            logger.info("Time elapsed in ms : \n");
-            logger.info(timeElapsed);
+    if(jobs.waitForCompletion(true) == true){
+      long ended = System.currentTimeMillis();
+            long elapsedtime = ended - started;
+            logger.info("Time elapsed: \n");
+            logger.info(elapsedtime);
             logger.warn("===============================================================================");
         System.exit(0);
     }

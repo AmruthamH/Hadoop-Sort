@@ -7,15 +7,15 @@ import scala.Tuple2;
 
 public class SparkSort {
     public static void main(String[] args) {
-        SparkConf s = new SparkConf().setAppName("Spark Sort");
-        JavaSparkContext sContext = new JavaSparkContext(s);
+        SparkConf spcon = new SparkConf().setAppName("Spark Sort");
+        JavaSparkContext sCon = new JavaSparkContext(s);
         //get command line arguments for input and output
         String in = args[0];
         String out = args[1];
         //text file to an RDD
-        JavaRDD<String> txtFile = sContext.txtFile(input);
+        JavaRDD<String> txtFile = sCon.txtFile(in);
         //returns a key-value RDD pairs
-        PairFunction<String, String, String> keyValue =
+        PairFunction<String, String, String> keyValuepair =
                new PairFunction<String, String, String>() {
                     public Tuple2<String, String > call(String i) throws Exception{
                         return new Tuple2(i.substring(0,10), i.substring(11,98));
@@ -23,9 +23,9 @@ public class SparkSort {
                 };
 
         //Generate pair RDD according to KeyValuePairs Tuple and run sort
-        JavaPairRDD<String, String> pair = txtFile.mapToPair(keyValue).sortByKey(true);
-        pair.map(i -> i._1 + " " + i._2 + "\r").coalesce(1).saveAsTextFile(out);
-        //Format the output to remove default brackets
+        JavaPairRDD<String, String> RDDpair = txtFile.mapToPair(keyValuepair).sortByKey(true);
+        RDDpair.map(i -> i._1 + " " + i._2 + "\r").coalesce(1).saveAsTextFile(out);
+        
     }
 
 }
